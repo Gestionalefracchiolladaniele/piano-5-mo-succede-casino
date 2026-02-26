@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { getLeadsSafe } from '@/lib/leads';
 
 export async function GET() {
-  const leads = await prisma.lead.findMany({ include: { interactions: true } });
+  const leads = await getLeadsSafe();
   return NextResponse.json(leads);
 }

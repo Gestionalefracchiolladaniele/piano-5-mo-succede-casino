@@ -35,7 +35,7 @@ export default function HomePage() {
           >
             Non un CRM. Il tuo sistema operativo per controllo, velocità e previsione del fatturato.
           </motion.p>
-          <Link href="/dashboard" className="rounded-full bg-white px-8 py-3 font-medium text-black transition hover:scale-105">
+          <Link href="/api/auth/demo" className="rounded-full bg-white px-8 py-3 font-medium text-black transition hover:scale-105">
             Enter Revenue OS
           </Link>
         </div>

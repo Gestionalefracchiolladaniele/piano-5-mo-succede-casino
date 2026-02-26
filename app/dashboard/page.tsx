@@ -1,12 +1,10 @@
-import dynamic from 'next/dynamic';
-import { prisma } from '@/lib/prisma';
 import { AnimatedMetric } from '@/components/AnimatedMetric';
+import { ForecastChart } from '@/components/ForecastChart';
+import { getLeadsSafe } from '@/lib/leads';
 import { calculateExpectedRevenue, calculateForecast, calculateVelocity, detectRisk } from '@/lib/revenueEngine';
 
-const ForecastChart = dynamic(() => import('@/components/ForecastChart').then((m) => m.ForecastChart), { ssr: false });
-
 export default async function DashboardPage() {
-  const leads = await prisma.lead.findMany({ take: 50, orderBy: { createdAt: 'desc' } });
+  const leads = await getLeadsSafe();
 
   const pipeline = leads.reduce((acc, lead) => acc + lead.dealSize, 0);
   const expected = calculateExpectedRevenue(leads);
