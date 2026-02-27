@@ -1,23 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 
-// Hook for scroll-triggered animations
-function useScrollReveal() {
+function useScrollReveal(threshold = 0.15) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
-
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => { if (entry.isIntersecting) setVisible(true); },
-      { threshold: 0.15 }
+      { threshold }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
   }, []);
-
   return { ref, visible };
 }
 
-function RevealSection({ children, delay = 0, className = "" }: {
+function Reveal({ children, delay = 0, className = "" }: {
   children: React.ReactNode;
   delay?: number;
   className?: string;
@@ -29,8 +26,8 @@ function RevealSection({ children, delay = 0, className = "" }: {
       className={className}
       style={{
         opacity: visible ? 1 : 0,
-        transform: visible ? "translateY(0px)" : "translateY(40px)",
-        transition: `opacity 0.8s ease ${delay}ms, transform 0.8s ease ${delay}ms`,
+        transform: visible ? "translateY(0px)" : "translateY(36px)",
+        transition: `opacity 0.9s cubic-bezier(.22,1,.36,1) ${delay}ms, transform 0.9s cubic-bezier(.22,1,.36,1) ${delay}ms`,
       }}
     >
       {children}
@@ -38,512 +35,571 @@ function RevealSection({ children, delay = 0, className = "" }: {
   );
 }
 
-const Index = () => {
+const features = [
+  {
+    num: "01",
+    title: "Pipeline Intelligente",
+    desc: "Gestisci lead e opportunità con una vista chiara e intuitiva. Ogni deal al posto giusto, sempre.",
+    icon: "◈",
+  },
+  {
+    num: "02",
+    title: "Automazioni Potenti",
+    desc: "Elimina il lavoro manuale. Imposta flussi automatici per email, follow-up e notifiche.",
+    icon: "◎",
+  },
+  {
+    num: "03",
+    title: "Analisi in Tempo Reale",
+    desc: "Dashboard personalizzabili con metriche che contano davvero per il tuo business.",
+    icon: "◐",
+  },
+  {
+    num: "04",
+    title: "Integrazioni Native",
+    desc: "Connettiti con gli strumenti che già usi. Tutto sincronizzato, tutto sotto controllo.",
+    icon: "◉",
+  },
+];
+
+const stats = ["3× Più Conversioni", "80% Tempo Risparmiato", "10k+ Aziende Attive", "99.9% Uptime"];
+
+export default function Index() {
   const [scrolled, setScrolled] = useState(false);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [menuOpen, setMenuOpen] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 40);
-    const onMouseMove = (e: MouseEvent) => {
-      setMousePos({ x: e.clientX, y: e.clientY });
-    };
+    const onScroll = () => setScrolled(window.scrollY > 50);
     window.addEventListener("scroll", onScroll);
-    window.addEventListener("mousemove", onMouseMove);
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("mousemove", onMouseMove);
-    };
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const features = [
-    { num: "01", title: "Pipeline Intelligente", desc: "Gestisci lead e opportunità con una vista chiara e intuitiva. Ogni deal al posto giusto, sempre." },
-    { num: "02", title: "Automazioni Potenti", desc: "Elimina il lavoro manuale. Imposta flussi automatici per email, follow-up e notifiche." },
-    { num: "03", title: "Analisi in Tempo Reale", desc: "Dashboard personalizzabili con metriche che contano davvero per il tuo business." },
-    { num: "04", title: "Integrazioni Native", desc: "Connettiti con gli strumenti che già usi. Tutto sincronizzato, tutto sotto controllo." },
-  ];
-
-  const stats = [
-    { value: "3×", label: "Più conversioni" },
-    { value: "80%", label: "Tempo risparmiato" },
-    { value: "10k+", label: "Aziende attive" },
-  ];
-
   return (
-    <div
-      style={{
-        fontFamily: "'Cormorant Garamond', Georgia, serif",
-        backgroundColor: "#ffffff",
-        color: "#0a0a0a",
-        overflowX: "hidden",
-      }}
-    >
-      {/* Google Fonts */}
+    <div style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", background: "#fff", color: "#0a0a0a", overflowX: "hidden" }}>
+
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Instrument+Mono:wght@300;400&display=swap');
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
         ::selection { background: #0a0a0a; color: #fff; }
 
-        .btn-primary {
-          display: inline-block;
-          padding: 18px 52px;
-          background: #0a0a0a;
-          color: #fff;
-          font-family: 'DM Mono', monospace;
-          font-size: 13px;
-          letter-spacing: 0.15em;
-          text-transform: uppercase;
-          text-decoration: none;
-          border: 1.5px solid #0a0a0a;
-          cursor: pointer;
-          position: relative;
-          overflow: hidden;
-          transition: color 0.35s ease;
-        }
-        .btn-primary::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: #fff;
-          transform: translateX(-101%);
-          transition: transform 0.35s ease;
-        }
-        .btn-primary:hover { color: #0a0a0a; }
-        .btn-primary:hover::before { transform: translateX(0); }
-        .btn-primary span { position: relative; z-index: 1; }
-
-        .btn-outline {
-          display: inline-block;
-          padding: 18px 52px;
-          background: transparent;
-          color: #0a0a0a;
-          font-family: 'DM Mono', monospace;
-          font-size: 13px;
-          letter-spacing: 0.15em;
-          text-transform: uppercase;
-          text-decoration: none;
-          border: 1.5px solid #0a0a0a;
-          cursor: pointer;
-          position: relative;
-          overflow: hidden;
-          transition: color 0.35s ease;
-        }
-        .btn-outline::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: #0a0a0a;
-          transform: translateX(-101%);
-          transition: transform 0.35s ease;
-        }
-        .btn-outline:hover { color: #fff; }
-        .btn-outline:hover::before { transform: translateX(0); }
-        .btn-outline span { position: relative; z-index: 1; }
-
-        .nav-link {
-          font-family: 'DM Mono', monospace;
-          font-size: 12px;
+        .mono {
+          font-family: 'Instrument Mono', monospace;
           letter-spacing: 0.12em;
           text-transform: uppercase;
-          color: #0a0a0a;
+        }
+
+        /* NAV LINKS */
+        .nav-a {
+          font-family: 'Instrument Mono', monospace;
+          font-size: 11px;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: #fff;
           text-decoration: none;
-          opacity: 0.6;
+          opacity: 0.7;
           transition: opacity 0.2s;
         }
-        .nav-link:hover { opacity: 1; }
-
-        .feature-card {
-          border-top: 1px solid #e0e0e0;
-          padding: 48px 0;
-          transition: border-color 0.3s;
+        .nav-a:hover { opacity: 1; }
+        .nav-a-dark {
+          font-family: 'Instrument Mono', monospace;
+          font-size: 11px;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: #0a0a0a;
+          text-decoration: none;
+          opacity: 0.5;
+          transition: opacity 0.2s;
         }
-        .feature-card:hover { border-color: #0a0a0a; }
+        .nav-a-dark:hover { opacity: 1; }
 
+        /* BUTTONS */
+        .btn-white {
+          display: inline-block;
+          padding: 16px 40px;
+          background: #fff;
+          color: #0a0a0a;
+          font-family: 'Instrument Mono', monospace;
+          font-size: 11px;
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
+          text-decoration: none;
+          border: 1.5px solid #fff;
+          cursor: pointer;
+          transition: background 0.3s, color 0.3s;
+          white-space: nowrap;
+        }
+        .btn-white:hover { background: transparent; color: #fff; }
+
+        .btn-black {
+          display: inline-block;
+          padding: 16px 40px;
+          background: #0a0a0a;
+          color: #fff;
+          font-family: 'Instrument Mono', monospace;
+          font-size: 11px;
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
+          text-decoration: none;
+          border: 1.5px solid #0a0a0a;
+          cursor: pointer;
+          transition: background 0.3s, color 0.3s;
+          white-space: nowrap;
+        }
+        .btn-black:hover { background: transparent; color: #0a0a0a; }
+
+        .btn-outline-dark {
+          display: inline-block;
+          padding: 16px 40px;
+          background: transparent;
+          color: #0a0a0a;
+          font-family: 'Instrument Mono', monospace;
+          font-size: 11px;
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
+          text-decoration: none;
+          border: 1.5px solid #0a0a0a;
+          cursor: pointer;
+          transition: background 0.3s, color 0.3s;
+          white-space: nowrap;
+        }
+        .btn-outline-dark:hover { background: #0a0a0a; color: #fff; }
+
+        /* FEATURE CARD */
+        .feature-card {
+          border: 1px solid #e8e8e8;
+          padding: 40px 32px;
+          transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
+          background: #fff;
+          position: relative;
+          overflow: hidden;
+        }
+        .feature-card::before {
+          content: '';
+          position: absolute;
+          top: 0; left: 0; right: 0;
+          height: 2px;
+          background: #0a0a0a;
+          transform: scaleX(0);
+          transform-origin: left;
+          transition: transform 0.4s ease;
+        }
+        .feature-card:hover::before { transform: scaleX(1); }
+        .feature-card:hover {
+          border-color: #0a0a0a;
+          transform: translateY(-4px);
+          box-shadow: 0 12px 40px rgba(0,0,0,0.08);
+        }
+
+        /* MARQUEE */
+        .marquee-wrap { overflow: hidden; }
         .marquee-track {
           display: flex;
           white-space: nowrap;
-          animation: marquee 18s linear infinite;
+          animation: marquee 20s linear infinite;
         }
         @keyframes marquee {
           from { transform: translateX(0); }
           to { transform: translateX(-50%); }
         }
 
+        /* MOBILE */
+        @media (max-width: 768px) {
+          .hero-title { font-size: clamp(52px, 14vw, 80px) !important; }
+          .hero-sub { font-size: 18px !important; }
+          .section-pad { padding: 80px 24px !important; }
+          .section-title { font-size: clamp(36px, 10vw, 56px) !important; }
+          .features-grid { grid-template-columns: 1fr !important; }
+          .hero-btns { flex-direction: column !important; align-items: flex-start !important; gap: 12px !important; }
+          .nav-desktop { display: none !important; }
+          .nav-mobile-btn { display: flex !important; }
+          .cta-title { font-size: clamp(40px, 12vw, 72px) !important; }
+          .stat-value { font-size: 52px !important; }
+        }
+        @media (min-width: 769px) {
+          .nav-mobile-btn { display: none !important; }
+        }
+
+        /* GRAIN */
         .grain {
-          position: fixed;
-          inset: 0;
-          pointer-events: none;
-          z-index: 9999;
-          opacity: 0.03;
-          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-          background-size: 200px;
+          position: fixed; inset: 0;
+          pointer-events: none; z-index: 9999;
+          opacity: 0.025;
+          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+          background-size: 180px;
+        }
+
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(30px); }
+          to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
 
-      {/* Grain overlay */}
       <div className="grain" />
 
-      {/* Cursor glow */}
-      <div
-        style={{
-          position: "fixed",
-          width: 400,
-          height: 400,
-          borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(0,0,0,0.04) 0%, transparent 70%)",
-          pointerEvents: "none",
-          zIndex: 9998,
-          left: mousePos.x - 200,
-          top: mousePos.y - 200,
-          transition: "left 0.1s ease, top 0.1s ease",
-        }}
-      />
-
-      {/* NAV */}
-      <nav
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 100,
-          padding: "24px 64px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          background: scrolled ? "rgba(255,255,255,0.92)" : "transparent",
-          backdropFilter: scrolled ? "blur(12px)" : "none",
-          borderBottom: scrolled ? "1px solid #e8e8e8" : "1px solid transparent",
-          transition: "all 0.4s ease",
-        }}
-      >
-        <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 600, letterSpacing: "0.08em" }}>
-          NEXUS
+      {/* ── NAV ── */}
+      <nav style={{
+        position: "fixed", top: 0, left: 0, right: 0, zIndex: 100,
+        padding: "20px 32px",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        background: scrolled ? "rgba(255,255,255,0.95)" : "transparent",
+        backdropFilter: scrolled ? "blur(16px)" : "none",
+        borderBottom: scrolled ? "1px solid #ebebeb" : "1px solid transparent",
+        transition: "all 0.4s ease",
+      }}>
+        <div style={{
+          fontFamily: "'Cormorant Garamond', serif",
+          fontSize: 20,
+          fontWeight: 600,
+          letterSpacing: "0.18em",
+          color: scrolled ? "#0a0a0a" : "#fff",
+          transition: "color 0.4s",
+        }}>
+          ARTEMISIA
         </div>
-        <div style={{ display: "flex", gap: 40, alignItems: "center" }}>
-          <a href="#features" className="nav-link">Funzioni</a>
-          <a href="#pricing" className="nav-link">Prezzi</a>
-          <a href="#crm" className="btn-primary" style={{ padding: "12px 32px" }}>
-            <span>Accedi al CRM</span>
+
+        {/* Desktop nav */}
+        <div className="nav-desktop" style={{ display: "flex", gap: 36, alignItems: "center" }}>
+          <a href="#features" className={scrolled ? "nav-a-dark" : "nav-a"}>Funzioni</a>
+          <a href="#pricing" className={scrolled ? "nav-a-dark" : "nav-a"}>Prezzi</a>
+          <a href="/crm" className={scrolled ? "btn-black" : "btn-white"} style={{ padding: "11px 28px" }}>
+            Accedi al CRM
           </a>
         </div>
+
+        {/* Mobile hamburger */}
+        <button
+          className="nav-mobile-btn"
+          onClick={() => setMenuOpen(!menuOpen)}
+          style={{
+            background: "none", border: "none", cursor: "pointer",
+            flexDirection: "column", gap: 5, padding: 4,
+          }}
+        >
+          {[0,1,2].map(i => (
+            <span key={i} style={{
+              display: "block", width: 22, height: 1.5,
+              background: scrolled ? "#0a0a0a" : "#fff",
+              transition: "all 0.3s",
+              transform: menuOpen && i === 0 ? "rotate(45deg) translate(4px, 4px)" :
+                         menuOpen && i === 2 ? "rotate(-45deg) translate(4px, -4px)" : "none",
+              opacity: menuOpen && i === 1 ? 0 : 1,
+            }} />
+          ))}
+        </button>
       </nav>
 
-      {/* HERO */}
-      <section
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          padding: "120px 64px 80px",
-          position: "relative",
-        }}
-      >
-        {/* Background grid */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            backgroundImage: "linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px)",
-            backgroundSize: "80px 80px",
-            pointerEvents: "none",
-          }}
-        />
+      {/* Mobile menu */}
+      {menuOpen && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 99,
+          background: "#0a0a0a",
+          display: "flex", flexDirection: "column",
+          alignItems: "center", justifyContent: "center",
+          gap: 40,
+        }}>
+          {["#features", "#pricing", "/crm"].map((href, i) => (
+            <a
+              key={href}
+              href={href}
+              onClick={() => setMenuOpen(false)}
+              style={{
+                fontFamily: "'Cormorant Garamond', serif",
+                fontSize: 42, fontWeight: 300,
+                color: "#fff", textDecoration: "none",
+                opacity: 0, animation: `fadeUp 0.5s ease ${i * 100}ms forwards`,
+              }}
+            >
+              {["Funzioni", "Prezzi", "CRM"][i]}
+            </a>
+          ))}
+        </div>
+      )}
 
-        <div style={{ maxWidth: 900, position: "relative" }}>
+      {/* ── HERO VIDEO ── */}
+      <section style={{ position: "relative", height: "100vh", overflow: "hidden" }}>
+        <video
+          ref={videoRef}
+          autoPlay
+          muted
+          loop
+          playsInline
+          style={{
+            position: "absolute", inset: 0,
+            width: "100%", height: "100%",
+            objectFit: "cover",
+          }}
+        >
+          <source src="/kling_20260207_Image_to_Video__913_0.mp4" type="video/mp4" />
+        </video>
+
+        {/* Overlay */}
+        <div style={{
+          position: "absolute", inset: 0,
+          background: "linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.7) 100%)",
+        }} />
+
+        {/* Hero content */}
+        <div style={{
+          position: "relative", zIndex: 2,
+          height: "100%", display: "flex",
+          flexDirection: "column", justifyContent: "flex-end",
+          padding: "0 32px 72px",
+          maxWidth: 1200,
+        }}>
           <div
+            className="mono"
             style={{
-              fontFamily: "'DM Mono', monospace",
-              fontSize: 11,
-              letterSpacing: "0.2em",
-              textTransform: "uppercase",
-              opacity: 0.4,
-              marginBottom: 32,
-              animation: "fadeIn 1s ease 0.2s both",
+              fontSize: 11, color: "rgba(255,255,255,0.5)",
+              marginBottom: 24,
+              animation: "fadeUp 1s ease 0.3s both",
             }}
           >
             — Software CRM per il Business Moderno
           </div>
 
           <h1
+            className="hero-title"
             style={{
               fontFamily: "'Cormorant Garamond', serif",
-              fontSize: "clamp(64px, 9vw, 130px)",
+              fontSize: "clamp(60px, 10vw, 120px)",
               fontWeight: 300,
-              lineHeight: 0.92,
+              lineHeight: 0.9,
+              color: "#fff",
               letterSpacing: "-0.02em",
-              marginBottom: 48,
-              animation: "slideUp 1s ease 0.4s both",
+              marginBottom: 32,
+              animation: "fadeUp 1s ease 0.5s both",
             }}
           >
             Il tuo<br />
-            <em style={{ fontStyle: "italic", fontWeight: 300 }}>business</em><br />
+            <em style={{ fontStyle: "italic" }}>business</em><br />
             al centro.
           </h1>
 
           <p
+            className="hero-sub"
             style={{
               fontFamily: "'Cormorant Garamond', serif",
-              fontSize: 22,
-              fontWeight: 300,
-              lineHeight: 1.7,
-              maxWidth: 520,
-              opacity: 0.65,
-              marginBottom: 56,
-              animation: "slideUp 1s ease 0.6s both",
+              fontSize: 20, fontWeight: 300,
+              color: "rgba(255,255,255,0.75)",
+              lineHeight: 1.7, maxWidth: 480,
+              marginBottom: 48,
+              animation: "fadeUp 1s ease 0.7s both",
             }}
           >
             Gestisci clienti, pipeline e automazioni da un'unica piattaforma elegante.
-            Smetti di usare fogli Excel.
           </p>
 
           <div
+            className="hero-btns"
             style={{
-              display: "flex",
-              gap: 20,
-              alignItems: "center",
-              animation: "slideUp 1s ease 0.8s both",
+              display: "flex", gap: 16, alignItems: "center",
+              animation: "fadeUp 1s ease 0.9s both",
             }}
           >
-            <a href="#crm" className="btn-primary">
-              <span>Inizia Gratis</span>
-            </a>
-            <a href="#features" className="btn-outline">
-              <span>Scopri di più</span>
+            <a href="/crm" className="btn-white">Inizia Gratis</a>
+            <a href="#features" className="btn-white" style={{ background: "transparent", color: "#fff" }}>
+              Scopri di più
             </a>
           </div>
         </div>
 
         {/* Scroll indicator */}
-        <div
-          style={{
-            position: "absolute",
-            bottom: 48,
-            left: 64,
-            display: "flex",
-            alignItems: "center",
-            gap: 16,
-            animation: "fadeIn 1s ease 1.2s both",
-          }}
-        >
-          <div
-            style={{
-              width: 1,
-              height: 64,
-              background: "#0a0a0a",
-              opacity: 0.2,
-              animation: "pulseHeight 2s ease-in-out infinite",
-            }}
-          />
-          <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", opacity: 0.3 }}>
-            Scroll
-          </span>
+        <div style={{
+          position: "absolute", bottom: 32, right: 32, zIndex: 2,
+          display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+          animation: "fadeUp 1s ease 1.2s both",
+        }}>
+          <div style={{
+            width: 1, height: 56,
+            background: "rgba(255,255,255,0.4)",
+            animation: "pulseH 2s ease-in-out infinite",
+          }} />
+          <span className="mono" style={{ fontSize: 9, color: "rgba(255,255,255,0.4)" }}>scroll</span>
         </div>
 
         <style>{`
-          @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
-          @keyframes slideUp { from { opacity: 0; transform: translateY(30px) } to { opacity: 1; transform: translateY(0) } }
-          @keyframes pulseHeight {
-            0%, 100% { transform: scaleY(1); opacity: 0.2; }
-            50% { transform: scaleY(0.5); opacity: 0.5; }
+          @keyframes pulseH {
+            0%,100% { transform: scaleY(1); opacity: 0.4; }
+            50% { transform: scaleY(0.4); opacity: 0.8; }
           }
         `}</style>
       </section>
 
-      {/* STATS MARQUEE */}
-      <section
-        style={{
-          borderTop: "1px solid #e0e0e0",
-          borderBottom: "1px solid #e0e0e0",
-          padding: "32px 0",
-          overflow: "hidden",
-          background: "#0a0a0a",
-        }}
-      >
+      {/* ── MARQUEE ── */}
+      <div className="marquee-wrap" style={{ background: "#0a0a0a", padding: "28px 0", borderTop: "1px solid #1a1a1a" }}>
         <div className="marquee-track">
           {[...Array(4)].flatMap(() =>
             stats.map((s, i) => (
-              <div
-                key={`${s.value}-${i}`}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 48,
-                  padding: "0 64px",
-                }}
-              >
-                <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 42, fontWeight: 300, color: "#fff" }}>
-                  {s.value}
+              <span key={`${s}-${i}`} style={{ display: "inline-flex", alignItems: "center", gap: 32, padding: "0 48px" }}>
+                <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 300, color: "#fff" }}>
+                  {s}
                 </span>
-                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(255,255,255,0.4)" }}>
-                  {s.label}
-                </span>
-                <span style={{ color: "rgba(255,255,255,0.15)", fontSize: 24 }}>—</span>
-              </div>
+                <span style={{ color: "rgba(255,255,255,0.15)", fontSize: 18 }}>×</span>
+              </span>
             ))
           )}
         </div>
-      </section>
+      </div>
 
-      {/* FEATURES */}
-      <section id="features" style={{ padding: "140px 64px", maxWidth: 1200, margin: "0 auto" }}>
-        <RevealSection>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 80 }}>
-            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "clamp(40px, 5vw, 72px)", fontWeight: 300, lineHeight: 1.1 }}>
+      {/* ── FEATURES ── */}
+      <section id="features" className="section-pad" style={{ padding: "120px 32px", maxWidth: 1200, margin: "0 auto" }}>
+        <Reveal>
+          <div style={{ marginBottom: 72 }}>
+            <span className="mono" style={{ fontSize: 10, opacity: 0.35, display: "block", marginBottom: 20 }}>
+              — Funzionalità
+            </span>
+            <h2
+              className="section-title"
+              style={{
+                fontFamily: "'Cormorant Garamond', serif",
+                fontSize: "clamp(40px, 6vw, 80px)",
+                fontWeight: 300, lineHeight: 1,
+              }}
+            >
               Tutto ciò che<br />
               <em>serve davvero.</em>
             </h2>
-            <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", opacity: 0.4, maxWidth: 200, textAlign: "right" }}>
-              Funzionalità progettate per chi fa sul serio
-            </p>
           </div>
-        </RevealSection>
+        </Reveal>
 
-        {features.map((f, i) => (
-          <RevealSection key={f.num} delay={i * 100}>
-            <div className="feature-card">
-              <div style={{ display: "grid", gridTemplateColumns: "80px 1fr 2fr", gap: 48, alignItems: "center" }}>
-                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, opacity: 0.3, letterSpacing: "0.1em" }}>
-                  {f.num}
-                </span>
-                <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 400 }}>
+        <div
+          className="features-grid"
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(2, 1fr)",
+            gap: 2,
+          }}
+        >
+          {features.map((f, i) => (
+            <Reveal key={f.num} delay={i * 80}>
+              <div className="feature-card">
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 32 }}>
+                  <span className="mono" style={{ fontSize: 10, opacity: 0.3 }}>{f.num}</span>
+                  <span style={{ fontSize: 20, opacity: 0.15 }}>{f.icon}</span>
+                </div>
+                <h3 style={{
+                  fontFamily: "'Cormorant Garamond', serif",
+                  fontSize: 26, fontWeight: 400,
+                  marginBottom: 16, lineHeight: 1.2,
+                }}>
                   {f.title}
                 </h3>
-                <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 300, lineHeight: 1.7, opacity: 0.6 }}>
+                <p style={{
+                  fontFamily: "'Cormorant Garamond', serif",
+                  fontSize: 17, fontWeight: 300,
+                  lineHeight: 1.75, opacity: 0.6,
+                }}>
                   {f.desc}
                 </p>
               </div>
-            </div>
-          </RevealSection>
-        ))}
-      </section>
-
-      {/* DIVIDER */}
-      <div style={{ height: 1, background: "linear-gradient(90deg, transparent, #0a0a0a 30%, #0a0a0a 70%, transparent)", opacity: 0.1, margin: "0 64px" }} />
-
-      {/* CTA SECTION */}
-      <section
-        id="crm"
-        style={{
-          padding: "160px 64px",
-          textAlign: "center",
-          background: "#0a0a0a",
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
-        {/* Decorative circle */}
-        <div
-          style={{
-            position: "absolute",
-            width: 600,
-            height: 600,
-            borderRadius: "50%",
-            border: "1px solid rgba(255,255,255,0.06)",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            pointerEvents: "none",
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            width: 900,
-            height: 900,
-            borderRadius: "50%",
-            border: "1px solid rgba(255,255,255,0.03)",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            pointerEvents: "none",
-          }}
-        />
-
-        <RevealSection>
-          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: 32 }}>
-            — Pronto a iniziare?
-          </div>
-          <h2
-            style={{
-              fontFamily: "'Cormorant Garamond', serif",
-              fontSize: "clamp(48px, 7vw, 100px)",
-              fontWeight: 300,
-              lineHeight: 1,
-              color: "#fff",
-              marginBottom: 32,
-              letterSpacing: "-0.02em",
-            }}
-          >
-            Entra nel<br />
-            <em>tuo CRM.</em>
-          </h2>
-          <p
-            style={{
-              fontFamily: "'Cormorant Garamond', serif",
-              fontSize: 20,
-              fontWeight: 300,
-              color: "rgba(255,255,255,0.5)",
-              marginBottom: 56,
-              maxWidth: 460,
-              margin: "0 auto 56px",
-              lineHeight: 1.7,
-            }}
-          >
-            Accedi alla dashboard, gestisci i tuoi clienti e fai crescere il tuo business da oggi.
-          </p>
-          <a
-            href="/crm"
-            style={{
-              display: "inline-block",
-              padding: "20px 64px",
-              background: "#fff",
-              color: "#0a0a0a",
-              fontFamily: "'DM Mono', monospace",
-              fontSize: 13,
-              letterSpacing: "0.15em",
-              textTransform: "uppercase",
-              textDecoration: "none",
-              border: "1.5px solid #fff",
-              transition: "all 0.35s ease",
-              position: "relative",
-              overflow: "hidden",
-            }}
-            onMouseEnter={e => {
-              (e.currentTarget as HTMLAnchorElement).style.background = "transparent";
-              (e.currentTarget as HTMLAnchorElement).style.color = "#fff";
-            }}
-            onMouseLeave={e => {
-              (e.currentTarget as HTMLAnchorElement).style.background = "#fff";
-              (e.currentTarget as HTMLAnchorElement).style.color = "#0a0a0a";
-            }}
-          >
-            Apri il CRM →
-          </a>
-        </RevealSection>
-      </section>
-
-      {/* FOOTER */}
-      <footer
-        style={{
-          padding: "48px 64px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          borderTop: "1px solid #e0e0e0",
-        }}
-      >
-        <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 600, letterSpacing: "0.08em" }}>
-          NEXUS
+            </Reveal>
+          ))}
         </div>
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, opacity: 0.3, letterSpacing: "0.1em" }}>
+      </section>
+
+      {/* ── STATS ── */}
+      <section style={{ background: "#f7f7f7", padding: "100px 32px" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+          <Reveal>
+            <span className="mono" style={{ fontSize: 10, opacity: 0.35, display: "block", marginBottom: 64 }}>
+              — Numeri che parlano
+            </span>
+          </Reveal>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 48 }}>
+            {[
+              { val: "3×", label: "Più conversioni" },
+              { val: "80%", label: "Tempo risparmiato" },
+              { val: "10k+", label: "Aziende attive" },
+              { val: "99.9%", label: "Uptime garantito" },
+            ].map((s, i) => (
+              <Reveal key={s.val} delay={i * 100}>
+                <div style={{ borderTop: "1px solid #ddd", paddingTop: 32 }}>
+                  <div
+                    className="stat-value"
+                    style={{
+                      fontFamily: "'Cormorant Garamond', serif",
+                      fontSize: 72, fontWeight: 300,
+                      lineHeight: 1, marginBottom: 12,
+                    }}
+                  >
+                    {s.val}
+                  </div>
+                  <div className="mono" style={{ fontSize: 10, opacity: 0.4 }}>{s.label}</div>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── CTA ── */}
+      <section id="crm" style={{ background: "#0a0a0a", padding: "140px 32px", position: "relative", overflow: "hidden" }}>
+        {/* Decorative circles */}
+        {[500, 800, 1100].map((size, i) => (
+          <div key={i} style={{
+            position: "absolute",
+            width: size, height: size,
+            borderRadius: "50%",
+            border: "1px solid rgba(255,255,255,0.04)",
+            top: "50%", left: "50%",
+            transform: "translate(-50%, -50%)",
+            pointerEvents: "none",
+          }} />
+        ))}
+
+        <div style={{ maxWidth: 800, margin: "0 auto", textAlign: "center", position: "relative" }}>
+          <Reveal>
+            <span className="mono" style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", display: "block", marginBottom: 32 }}>
+              — Pronto a iniziare?
+            </span>
+            <h2
+              className="cta-title"
+              style={{
+                fontFamily: "'Cormorant Garamond', serif",
+                fontSize: "clamp(48px, 8vw, 96px)",
+                fontWeight: 300, lineHeight: 0.95,
+                color: "#fff", letterSpacing: "-0.02em",
+                marginBottom: 32,
+              }}
+            >
+              Entra nel<br />
+              <em>tuo CRM.</em>
+            </h2>
+            <p style={{
+              fontFamily: "'Cormorant Garamond', serif",
+              fontSize: 20, fontWeight: 300,
+              color: "rgba(255,255,255,0.5)",
+              lineHeight: 1.7, marginBottom: 56,
+            }}>
+              Accedi alla dashboard, gestisci i tuoi clienti e fai crescere il tuo business da oggi.
+            </p>
+            <a href="/crm" className="btn-white">
+              Apri il CRM →
+            </a>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ── FOOTER ── */}
+      <footer style={{
+        padding: "40px 32px",
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        borderTop: "1px solid #ebebeb",
+        flexWrap: "wrap", gap: 16,
+      }}>
+        <div style={{
+          fontFamily: "'Cormorant Garamond', serif",
+          fontSize: 18, fontWeight: 600, letterSpacing: "0.18em",
+        }}>
+          ARTEMISIA
+        </div>
+        <div className="mono" style={{ fontSize: 10, opacity: 0.3 }}>
           © 2025 — Tutti i diritti riservati
         </div>
       </footer>
     </div>
   );
-};
-
-export default Index;
+}
