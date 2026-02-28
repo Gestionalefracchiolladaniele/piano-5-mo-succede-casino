@@ -1,11 +1,28 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 
 // ─────────────────────────────────────────────
-// REVEAL — scroll reveal
+// IMAGE PATHS
 // ─────────────────────────────────────────────
-function Reveal({
-  children, delay = 0, from = "bottom",
-}: {
+const MIC_ONLY  = "/unnamed_9_-removebg-preview.png";
+const HAND_OPEN = "/IMG_20260228_222718-removebg-preview.png";
+const HAND_MID  = "/unnamed_11_-removebg-preview.png";
+const HAND_GRIP = "/IMG_20260228_222748-removebg-preview.png";
+
+// ─────────────────────────────────────────────
+// EASING
+// ─────────────────────────────────────────────
+function easeOut(t: number) { return 1 - Math.pow(1 - t, 3); }
+function easeIn(t: number)  { return t * t * t; }
+function lerp(a: number, b: number, t: number) { return a + (b - a) * t; }
+function clamp(v: number, min: number, max: number) { return Math.max(min, Math.min(max, v)); }
+function phase(p: number, start: number, end: number) {
+  return clamp((p - start) / (end - start), 0, 1);
+}
+
+// ─────────────────────────────────────────────
+// REVEAL
+// ─────────────────────────────────────────────
+function Reveal({ children, delay = 0, from = "bottom" }: {
   children: React.ReactNode; delay?: number; from?: "bottom" | "left" | "right";
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -18,13 +35,13 @@ function Reveal({
     if (ref.current) o.observe(ref.current);
     return () => o.disconnect();
   }, []);
-  const transforms: Record<string, string> = {
+  const t: Record<string, string> = {
     bottom: "translateY(44px)", left: "translateX(-44px)", right: "translateX(44px)",
   };
   return (
     <div ref={ref} style={{
       opacity: vis ? 1 : 0,
-      transform: vis ? "none" : transforms[from],
+      transform: vis ? "none" : t[from],
       transition: `opacity .95s cubic-bezier(.22,1,.36,1) ${delay}ms, transform .95s cubic-bezier(.22,1,.36,1) ${delay}ms`,
     }}>
       {children}
@@ -33,224 +50,155 @@ function Reveal({
 }
 
 // ─────────────────────────────────────────────
-// HERO TEXT LINE — appears on scroll threshold
-// ─────────────────────────────────────────────
-function HeroLine({
-  children, show, delay = 0, italic = false,
-}: {
-  children: React.ReactNode; show: boolean; delay?: number; italic?: boolean;
-}) {
-  return (
-    <div style={{ overflow: "hidden", lineHeight: 1 }}>
-      <div style={{
-        display: "block",
-        fontStyle: italic ? "italic" : "normal",
-        opacity: show ? 1 : 0,
-        transform: show ? "translateY(0)" : "translateY(100%)",
-        transition: `opacity .9s cubic-bezier(.22,1,.36,1) ${delay}ms, transform .9s cubic-bezier(.22,1,.36,1) ${delay}ms`,
-        paddingBottom: "0.1em",
-      }}>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────
-// LERP UTILS
-// ─────────────────────────────────────────────
-function lerp(a: number, b: number, t: number) { return a + (b - a) * t; }
-function easeInOut(t: number) { return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; }
-function smoothLerp(cur: number, target: number, f: number) { return cur + (target - cur) * f; }
-
-// ─────────────────────────────────────────────
-// CONSTANTS
-// ─────────────────────────────────────────────
-const GIF_HERO        = "/IMG_2047.gif";
-const GIF_FLOAT       = "/IMG_2049.gif";
-
-const FEATURES = [
-  { num: "01", title: "Pipeline Intelligente",  desc: "Gestisci lead e opportunità con una vista chiara. Ogni deal al posto giusto, sempre.",  from: "left"   as const },
-  { num: "02", title: "Automazioni Potenti",     desc: "Elimina il lavoro manuale. Flussi automatici per email, follow-up e notifiche.",         from: "bottom" as const },
-  { num: "03", title: "Analisi in Tempo Reale",  desc: "Dashboard con metriche che contano davvero per il tuo business.",                        from: "right"  as const },
-  { num: "04", title: "Integrazioni Native",     desc: "Connettiti con gli strumenti che già usi. Tutto sincronizzato.",                         from: "bottom" as const },
-];
-
-const STATS_MARQUEE = [
-  "3× Più Conversioni", "80% Tempo Risparmiato", "10k+ Aziende Attive", "99.9% Uptime",
-];
-
-// ─────────────────────────────────────────────
-// ZIG-ZAG PATHS (x: 0=left, 1=right of viewport)
-// A starts off-left, B starts off-right
-// Meet at center (~p=0.50), bounce, exit opposite
-// ─────────────────────────────────────────────
-const PATH_A = [
-  { p: 0.00, x: -0.20 },
-  { p: 0.14, x:  0.68 },
-  { p: 0.28, x:  0.04 },
-  { p: 0.42, x:  0.62 },
-  { p: 0.50, x:  0.36 }, // impact
-  { p: 0.58, x:  0.04 },
-  { p: 0.72, x:  0.64 },
-  { p: 0.86, x:  0.04 },
-  { p: 1.00, x: -0.24 },
-];
-
-const PATH_B = [
-  { p: 0.00, x:  1.20 },
-  { p: 0.14, x:  0.24 },
-  { p: 0.28, x:  0.88 },
-  { p: 0.42, x:  0.30 },
-  { p: 0.50, x:  0.54 }, // impact
-  { p: 0.58, x:  0.88 },
-  { p: 0.72, x:  0.28 },
-  { p: 0.86, x:  0.88 },
-  { p: 1.00, x:  1.24 },
-];
-
-function getX(path: typeof PATH_A, progress: number): number {
-  const p = Math.max(0, Math.min(1, progress));
-  for (let i = 0; i < path.length - 1; i++) {
-    const a = path[i], b = path[i + 1];
-    if (p >= a.p && p <= b.p) {
-      const t = (p - a.p) / (b.p - a.p);
-      return lerp(a.x, b.x, easeInOut(t));
-    }
-  }
-  return path[path.length - 1].x;
-}
-
-// ─────────────────────────────────────────────
 // MAIN
 // ─────────────────────────────────────────────
 export default function Index() {
-  const [scrollY, setScrollY]         = useState(0);
-  const [scrolled, setScrolled]       = useState(false);
-  const [menuOpen, setMenuOpen]       = useState(false);
-  const [scrollPct, setScrollPct]     = useState(0);
-  const [heroProgress, setHeroProgress] = useState(0); // 0→1 while in hero
+  const [scrolled, setScrolled]   = useState(false);
+  const [menuOpen, setMenuOpen]   = useState(false);
+  const [scrollPct, setScrollPct] = useState(0);
 
-  // Hero text reveal stages (triggered by scroll)
-  const [showLine1, setShowLine1] = useState(false);
-  const [showLine2, setShowLine2] = useState(false);
-  const [showLine3, setShowLine3] = useState(false);
-  const [showSub,   setShowSub]   = useState(false);
-  const [showBtns,  setShowBtns]  = useState(false);
+  // Hero text reveal
+  const [showL1, setShowL1] = useState(true);
+  const [showL2, setShowL2] = useState(false);
+  const [showL3, setShowL3] = useState(false);
+  const [showSub, setShowSub] = useState(false);
+  const [showBtns, setShowBtns] = useState(false);
 
-  // Floating gif refs
-  const wrapARef    = useRef<HTMLDivElement>(null);
-  const wrapBRef    = useRef<HTMLDivElement>(null);
-  const impactRef   = useRef<HTMLDivElement>(null);
-  const zoneStartRef = useRef<HTMLDivElement>(null);
-  const zoneEndRef   = useRef<HTMLDivElement>(null);
-  const heroRef      = useRef<HTMLElement>(null);
+  // Mic scene state
+  const [handFrame, setHandFrame]   = useState(0); // 0=open 1=mid 2=grip
+  const [micVisible, setMicVisible] = useState(true);
+  const [ctaVisible, setCtaVisible] = useState(false);
 
-  // Smooth animation values
-  const curAX = useRef(-300);
-  const curBX = useRef(2000);
-  const curAY = useRef(0);
-  const curBY = useRef(0);
-  const curProgress = useRef(0);
-  const rafRef = useRef(0);
+  // Mic scene refs
+  const micSceneRef = useRef<HTMLElement>(null);
+  const micRef      = useRef<HTMLDivElement>(null);
+  const handRef     = useRef<HTMLDivElement>(null);
+  const glowRef     = useRef<HTMLDivElement>(null);
+  const ctaRef      = useRef<HTMLDivElement>(null);
+  const rafRef      = useRef(0);
+
+  // Smooth animation state
+  const anim = useRef({
+    micY: -160, micS: 0.5, micO: 0,
+    handY: 200, handO: 0,
+    glowS: 0.3, glowO: 0,
+    ctaO: 0, ctaY: 40,
+    frame: 0,
+  });
 
   // ── SCROLL HANDLER ──
   const onScroll = useCallback(() => {
-    const sy = window.scrollY;
-    setScrollY(sy);
-    setScrolled(sy > 60);
-
+    const sy  = window.scrollY;
+    const VH  = window.innerHeight;
     const docH = document.body.scrollHeight - window.innerHeight;
+
+    setScrolled(sy > 60);
     setScrollPct(docH > 0 ? (sy / docH) * 100 : 0);
 
-    // Hero parallax + text reveal
-    const VH = window.innerHeight;
-    const heroP = Math.min(sy / VH, 1);
-    setHeroProgress(heroP);
+    // Hero text reveal
+    const hp = clamp(sy / VH, 0, 1);
+    setShowL2(hp >= 0.04);
+    setShowL3(hp >= 0.09);
+    setShowSub(hp >= 0.15);
+    setShowBtns(hp >= 0.21);
 
-    // Staggered text reveal based on scroll depth in hero
-    setShowLine1(heroP >= 0);
-    setShowLine2(heroP >= 0.04);
-    setShowLine3(heroP >= 0.09);
-    setShowSub(heroP >= 0.15);
-    setShowBtns(heroP >= 0.20);
+    // Mic scene progress
+    const sec = micSceneRef.current;
+    if (sec) {
+      const rect  = sec.getBoundingClientRect();
+      const totalH = sec.offsetHeight - VH;
+      const p     = clamp(-rect.top / totalH, 0, 1);
+      const a     = anim.current;
 
-    // Floating zone progress
-    const startEl = zoneStartRef.current;
-    const endEl   = zoneEndRef.current;
-    if (!startEl || !endEl) return;
+      // Phase 1: 0–0.28 mic descends
+      const p1 = easeOut(phase(p, 0, 0.28));
+      // Phase 2: 0.28–0.52 hand rises
+      const p2 = easeOut(phase(p, 0.28, 0.52));
+      // Phase 3: 0.52–0.68 grip
+      const p3 = phase(p, 0.52, 0.68);
+      // Phase 4: 0.68–1.0 drop + cta
+      const p4 = easeOut(phase(p, 0.68, 1.0));
 
-    const startY = startEl.getBoundingClientRect().top + sy;
-    const endY   = endEl.getBoundingClientRect().top + sy;
-    const zoneH  = endY - startY;
-    curProgress.current = Math.max(0, Math.min(1, (sy - startY) / zoneH));
+      // Mic
+      a.micY = lerp(-160, p4 > 0 ? lerp(0, 70, easeIn(p4)) : 0, p1);
+      a.micS = lerp(0.5, 1, p1);
+      a.micO = lerp(0, 1, p1);
+
+      // Hand
+      a.handY = lerp(200, p4 > 0 ? lerp(0, 70, easeIn(p4)) : 0, p2);
+      a.handO = lerp(0, 1, p2);
+
+      // Frame swap
+      const newFrame = p3 < 0.38 ? 0 : p3 < 0.72 ? 1 : 2;
+      if (newFrame !== a.frame) {
+        a.frame = newFrame;
+        setHandFrame(newFrame);
+        setMicVisible(newFrame < 2);
+      }
+
+      // Glow
+      const glowT = clamp((p3 - 0.65) / 0.35, 0, 1);
+      a.glowS = lerp(0.3, p4 > 0 ? lerp(1.4, 0.6, p4) : 1.4, glowT);
+      a.glowO = lerp(0, p4 > 0 ? lerp(0.75, 0, p4) : 0.75, glowT);
+
+      // CTA text
+      a.ctaO = lerp(0, 1, easeOut(clamp((p4 - 0.3) / 0.7, 0, 1)));
+      a.ctaY = lerp(40, 0, easeOut(clamp((p4 - 0.3) / 0.7, 0, 1)));
+
+      setCtaVisible(a.ctaO > 0.05);
+    }
   }, []);
 
-  // ── ANIMATION LOOP ──
+  // ── RAF LOOP — apply smooth values to DOM ──
   useEffect(() => {
-    const animate = () => {
-      rafRef.current = requestAnimationFrame(animate);
+    let prev = { ...anim.current };
+    const smooth = { ...anim.current };
+    const F = 0.09;
 
-      const wA  = wrapARef.current;
-      const wB  = wrapBRef.current;
-      const imp = impactRef.current;
-      if (!wA || !wB) return;
+    const tick = () => {
+      rafRef.current = requestAnimationFrame(tick);
+      const a = anim.current;
 
-      const p   = curProgress.current;
-      const VW  = window.innerWidth;
-      const VH  = window.innerHeight;
-      const VS  = VW < 768 ? 90 : 150; // video size px
+      smooth.micY  = lerp(smooth.micY,  a.micY,  F);
+      smooth.micS  = lerp(smooth.micS,  a.micS,  F);
+      smooth.micO  = lerp(smooth.micO,  a.micO,  F);
+      smooth.handY = lerp(smooth.handY, a.handY, F);
+      smooth.handO = lerp(smooth.handO, a.handO, F);
+      smooth.glowS = lerp(smooth.glowS, a.glowS, F);
+      smooth.glowO = lerp(smooth.glowO, a.glowO, F);
+      smooth.ctaO  = lerp(smooth.ctaO,  a.ctaO,  F);
+      smooth.ctaY  = lerp(smooth.ctaY,  a.ctaY,  F);
 
-      // Target X positions
-      const tAX = getX(PATH_A, p) * VW - VS / 2;
-      const tBX = getX(PATH_B, p) * VW - VS / 2;
+      const mic  = micRef.current;
+      const hand = handRef.current;
+      const glow = glowRef.current;
+      const cta  = ctaRef.current;
 
-      // Target Y — travel from 10% to 80% of viewport height
-      const tY  = lerp(VH * 0.10, VH * 0.82, p);
-
-      // Smooth interpolation
-      curAX.current = smoothLerp(curAX.current, tAX, 0.07);
-      curBX.current = smoothLerp(curBX.current, tBX, 0.07);
-      curAY.current = smoothLerp(curAY.current, tY,  0.05);
-      curBY.current = smoothLerp(curBY.current, tY,  0.05);
-
-      // Rotation toward movement direction
-      const rotA = Math.max(-14, Math.min(14, (tAX - curAX.current) * 0.5));
-      const rotB = Math.max(-14, Math.min(14, (tBX - curBX.current) * 0.5));
-
-      // Impact intensity
-      const distImpact = Math.abs(p - 0.50);
-      const isImpact   = distImpact < 0.06 && p > 0.02;
-      const intensity  = isImpact ? Math.max(0, 1 - distImpact / 0.06) : 0;
-      const scale      = 1 + intensity * 0.18;
-
-      // Fade in/out
-      const fadeIn  = p < 0.04 ? p / 0.04 : 1;
-      const fadeOut = p > 0.92 ? Math.max(0, 1 - (p - 0.92) / 0.08) : 1;
-      const opacity = Math.min(fadeIn, fadeOut);
-
-      // Apply to DOM
-      wA.style.transform = `translate(${curAX.current}px, ${curAY.current}px) rotate(${rotA}deg) scale(${scale})`;
-      wB.style.transform = `translate(${curBX.current}px, ${curBY.current}px) rotate(${rotB}deg) scale(${scale})`;
-      wA.style.opacity   = String(opacity);
-      wB.style.opacity   = String(opacity);
-
-      // Impact effect
-      if (imp) {
-        imp.style.opacity   = String(intensity * 0.9);
-        imp.style.transform = `translate(-50%, -50%) scale(${0.3 + intensity * 0.7})`;
+      if (mic) {
+        mic.style.transform = `translateX(-50%) translateY(calc(-50% + ${smooth.micY}px)) scale(${smooth.micS})`;
+        mic.style.opacity   = String(smooth.micO);
+      }
+      if (hand) {
+        hand.style.transform = `translateX(-50%) translateY(calc(-50% + ${smooth.handY}px))`;
+        hand.style.opacity   = String(smooth.handO);
+      }
+      if (glow) {
+        glow.style.transform = `translate(-50%,-50%) scale(${smooth.glowS})`;
+        glow.style.opacity   = String(smooth.glowO);
+      }
+      if (cta) {
+        cta.style.opacity   = String(smooth.ctaO);
+        cta.style.transform = `translateX(-50%) translateY(${smooth.ctaY}px)`;
       }
     };
 
-    rafRef.current = requestAnimationFrame(animate);
+    rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
   }, []);
 
   // ── SCROLL LISTENER ──
   useEffect(() => {
     window.addEventListener("scroll", onScroll, { passive: true });
-    // Trigger on load to show first line immediately
-    setTimeout(() => setShowLine1(true), 300);
     return () => window.removeEventListener("scroll", onScroll);
   }, [onScroll]);
 
@@ -260,168 +208,81 @@ export default function Index() {
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Instrument+Mono:wght@300;400&display=swap');
         *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
         html{scroll-behavior:smooth;}
-        ::selection{background:#0a0a0a;color:#fff;}
+        ::selection{background:#d4af37;color:#000;}
         .mono{font-family:'Instrument Mono',monospace;letter-spacing:.12em;text-transform:uppercase;}
 
         @keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:none;}}
         @keyframes marquee{from{transform:translateX(0);}to{transform:translateX(-50%);}}
         @keyframes rotateSlow{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
-        @keyframes impactRing{
-          0%{transform:translate(-50%,-50%) scale(.2);opacity:.8;}
-          100%{transform:translate(-50%,-50%) scale(2.4);opacity:0;}
+        @keyframes spotPulse{0%,100%{opacity:.12;}50%{opacity:.22;}}
+        @keyframes goldShimmer{
+          0%,100%{filter:drop-shadow(0 0 10px rgba(212,175,55,.25));}
+          50%{filter:drop-shadow(0 0 28px rgba(212,175,55,.75)) drop-shadow(0 0 48px rgba(212,175,55,.3));}
+        }
+        @keyframes particleDrift{
+          0%{transform:translateY(0) rotate(0deg);opacity:.7;}
+          100%{transform:translateY(120px) rotate(200deg);opacity:0;}
         }
 
-        /* NAV */
         .nav-lk{font-family:'Instrument Mono',monospace;font-size:11px;letter-spacing:.13em;text-transform:uppercase;text-decoration:none;opacity:.55;transition:opacity .2s;}
         .nav-lk:hover{opacity:1;}
 
-        /* BUTTONS */
-        .btn-w{display:inline-block;padding:16px 44px;background:#fff;color:#0a0a0a;font-family:'Instrument Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;text-decoration:none;border:1.5px solid rgba(255,255,255,.75);transition:all .3s;}
+        .btn-gold{display:inline-block;padding:16px 48px;background:transparent;color:#d4af37;font-family:'Instrument Mono',monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;text-decoration:none;border:1px solid rgba(212,175,55,.6);transition:all .35s;}
+        .btn-gold:hover{background:rgba(212,175,55,.1);border-color:#d4af37;}
+        .btn-ghost-w{display:inline-block;padding:16px 48px;background:transparent;color:#fff;font-family:'Instrument Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;text-decoration:none;border:1.5px solid rgba(255,255,255,.3);transition:all .3s;}
+        .btn-ghost-w:hover{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.6);}
+        .btn-w{display:inline-block;padding:16px 48px;background:#fff;color:#0a0a0a;font-family:'Instrument Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;text-decoration:none;border:1.5px solid #fff;transition:all .3s;}
         .btn-w:hover{background:transparent;color:#fff;}
-        .btn-ghost{display:inline-block;padding:16px 44px;background:transparent;color:#fff;font-family:'Instrument Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;text-decoration:none;border:1.5px solid rgba(255,255,255,.3);transition:all .3s;}
-        .btn-ghost:hover{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.6);}
-        .btn-crm{display:inline-block;padding:20px 64px;background:#fff;color:#0a0a0a;font-family:'Instrument Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;text-decoration:none;border:1.5px solid #fff;transition:all .3s;}
-        .btn-crm:hover{background:transparent;color:#fff;}
 
-        /* FEATURE CARD */
-        .fcard{border:1px solid #e4e4e4;padding:40px 32px 44px;background:#fff;position:relative;overflow:hidden;transition:border-color .35s,box-shadow .35s,transform .35s;}
-        .fcard::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:#0a0a0a;transform:scaleX(0);transform-origin:left;transition:transform .45s cubic-bezier(.22,1,.36,1);}
+        .fcard{border:1px solid #e4e4e4;padding:40px 32px 44px;position:relative;overflow:hidden;transition:border-color .35s,box-shadow .35s,transform .35s;background:#fff;}
+        .fcard::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:#d4af37;transform:scaleX(0);transform-origin:left;transition:transform .45s cubic-bezier(.22,1,.36,1);}
         .fcard:hover::after{transform:scaleX(1);}
-        .fcard:hover{border-color:#bbb;transform:translateY(-5px);box-shadow:0 16px 48px rgba(0,0,0,.07);}
-        .bnum{position:absolute;bottom:-12px;right:8px;font-family:'Cormorant Garamond',serif;font-size:110px;font-weight:600;color:rgba(0,0,0,.04);line-height:1;pointer-events:none;user-select:none;transition:color .35s;}
-        .fcard:hover .bnum{color:rgba(0,0,0,.08);}
+        .fcard:hover{border-color:#ccc;transform:translateY(-5px);box-shadow:0 16px 48px rgba(0,0,0,.06);}
+        .bnum{position:absolute;bottom:-12px;right:8px;font-family:'Cormorant Garamond',serif;font-size:110px;font-weight:600;color:rgba(0,0,0,.035);line-height:1;pointer-events:none;user-select:none;}
 
-        /* FLOATING GIF */
-        .fgif{
-          position:fixed;top:0;left:0;
-          pointer-events:none;z-index:50;
-          will-change:transform,opacity;
-          border-radius:4px;
-          overflow:hidden;
-        }
-        .fgif img{
-          display:block;width:100%;height:100%;
-          object-fit:cover;
-        }
+        .grain{position:fixed;inset:0;pointer-events:none;z-index:9998;opacity:.022;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:180px;}
 
-        /* IMPACT */
-        .impact{
-          position:fixed;top:50%;left:50%;
-          width:260px;height:260px;
-          pointer-events:none;z-index:49;
-          opacity:0;
-          transform:translate(-50%,-50%) scale(.3);
-          transition:opacity .08s;
-        }
-
-        /* GRAIN */
-        .grain{position:fixed;inset:0;pointer-events:none;z-index:9998;opacity:.025;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:180px;}
-
-        /* MOBILE */
         @media(max-width:768px){
           .desk-only{display:none!important;}
           .mob-only{display:flex!important;}
           .hero-btns{flex-direction:column!important;align-items:center!important;gap:12px!important;}
           .features-g{grid-template-columns:1fr!important;}
           .stats-g{grid-template-columns:1fr 1fr!important;}
+          .mic-size{width:clamp(100px,22vw,150px)!important;}
+          .hand-size{width:clamp(140px,30vw,200px)!important;}
         }
         @media(min-width:769px){.mob-only{display:none!important;}}
-
         ::-webkit-scrollbar{width:3px;}
-        ::-webkit-scrollbar-track{background:transparent;}
-        ::-webkit-scrollbar-thumb{background:#ccc;border-radius:2px;}
+        ::-webkit-scrollbar-thumb{background:#d4af37;border-radius:2px;}
       `}</style>
 
       <div className="grain" />
 
-      {/* SCROLL PROGRESS BAR */}
-      <div style={{
-        position:"fixed",top:0,left:0,zIndex:300,
-        height:2,background:"#fff",width:`${scrollPct}%`,
-        transition:"width .08s linear",mixBlendMode:"difference",
-      }} />
-
-      {/* ── FLOATING GIF A ── */}
-      <div
-        ref={wrapARef}
-        className="fgif"
-        style={{
-          width:  typeof window !== "undefined" && window.innerWidth < 768 ? 90 : 150,
-          height: typeof window !== "undefined" && window.innerWidth < 768 ? 90 : 150,
-          opacity: 0,
-        }}
-      >
-        <img src={GIF_FLOAT} alt="" loading="eager" />
-      </div>
-
-      {/* ── FLOATING GIF B (mirrored) ── */}
-      <div
-        ref={wrapBRef}
-        className="fgif"
-        style={{
-          width:  typeof window !== "undefined" && window.innerWidth < 768 ? 90 : 150,
-          height: typeof window !== "undefined" && window.innerWidth < 768 ? 90 : 150,
-          opacity: 0,
-          transform: "scaleX(-1)",
-        }}
-      >
-        <img src={GIF_FLOAT} alt="" loading="eager" />
-      </div>
-
-      {/* ── IMPACT EFFECT ── */}
-      <div ref={impactRef} className="impact">
-        <div style={{ position:"absolute",inset:0,background:"radial-gradient(circle,rgba(255,255,255,.2) 0%,transparent 70%)",borderRadius:"50%" }} />
-        <div style={{ position:"absolute",inset:-48,border:"1px solid rgba(255,255,255,.28)",borderRadius:"50%" }} />
-        <div style={{ position:"absolute",inset:-96,border:"1px solid rgba(255,255,255,.10)",borderRadius:"50%" }} />
-        <div style={{
-          position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",
-          fontFamily:"'Cormorant Garamond',serif",fontSize:"clamp(24px,4vw,52px)",
-          fontWeight:300,fontStyle:"italic",color:"rgba(0,0,0,.06)",
-          whiteSpace:"nowrap",
-        }}>
-          Artemisia
-        </div>
-      </div>
+      {/* SCROLL PROGRESS */}
+      <div style={{ position:"fixed",top:0,left:0,zIndex:300,height:2,background:"#d4af37",width:`${scrollPct}%`,transition:"width .08s linear" }} />
 
       {/* ── NAV ── */}
       <nav style={{
         position:"fixed",top:0,left:0,right:0,zIndex:200,
         padding:"22px 32px",
         display:"flex",alignItems:"center",justifyContent:"space-between",
-        background: scrolled ? "rgba(255,255,255,.96)" : "transparent",
-        backdropFilter: scrolled ? "blur(20px)" : "none",
-        borderBottom: scrolled ? "1px solid #ebebeb" : "none",
+        background:scrolled?"rgba(10,10,10,.96)":"transparent",
+        backdropFilter:scrolled?"blur(20px)":"none",
+        borderBottom:scrolled?"1px solid #1a1a1a":"none",
         transition:"all .4s ease",
       }}>
-        <div style={{
-          fontFamily:"'Cormorant Garamond',serif",fontSize:19,fontWeight:600,
-          letterSpacing:".2em",color:scrolled?"#0a0a0a":"#fff",transition:"color .4s",
-        }}>
-          ARTEMISIA
+        <div style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:600,letterSpacing:".25em",color:"#fff",transition:"color .4s" }}>
+          NOME ATTORE
         </div>
         <div className="desk-only" style={{ display:"flex",gap:36,alignItems:"center" }}>
-          <a href="#features" className="nav-lk" style={{ color:scrolled?"#0a0a0a":"#fff" }}>Funzioni</a>
-          <a href="#pricing"  className="nav-lk" style={{ color:scrolled?"#0a0a0a":"#fff" }}>Prezzi</a>
-          <a href="/crm" style={{
-            padding:"11px 28px",
-            background:scrolled?"#0a0a0a":"transparent",
-            color:scrolled?"#fff":"#fff",
-            fontFamily:"'Instrument Mono',monospace",fontSize:10,
-            letterSpacing:".14em",textTransform:"uppercase",textDecoration:"none",
-            border:`1.5px solid ${scrolled?"#0a0a0a":"rgba(255,255,255,.5)"}`,
-            transition:"all .3s",
-          }}>Accedi al CRM</a>
+          {["Bio","Spettacoli","Portfolio","Contatti"].map(l => (
+            <a key={l} href={`#${l.toLowerCase()}`} className="nav-lk" style={{ color:"rgba(255,255,255,.6)" }}>{l}</a>
+          ))}
         </div>
-        {/* Hamburger */}
-        <button
-          className="mob-only"
-          onClick={() => setMenuOpen(!menuOpen)}
-          style={{ background:"none",border:"none",flexDirection:"column",gap:5,padding:4 }}
-        >
+        <button className="mob-only" onClick={() => setMenuOpen(!menuOpen)} style={{ background:"none",border:"none",flexDirection:"column",gap:5,padding:4 }}>
           {[0,1,2].map(i => (
             <span key={i} style={{
-              display:"block",width:22,height:1.5,
-              background:scrolled?"#0a0a0a":"#fff",transition:"all .3s",
+              display:"block",width:22,height:1.5,background:"#fff",transition:"all .3s",
               transform:menuOpen&&i===0?"rotate(45deg) translate(4px,4px)":menuOpen&&i===2?"rotate(-45deg) translate(4px,-4px)":"none",
               opacity:menuOpen&&i===1?0:1,
             }} />
@@ -429,201 +290,258 @@ export default function Index() {
         </button>
       </nav>
 
-      {/* Mobile menu */}
       {menuOpen && (
         <div style={{ position:"fixed",inset:0,zIndex:199,background:"#0a0a0a",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:48 }}>
-          {[["#features","Funzioni"],["#pricing","Prezzi"],["/crm","CRM"]].map(([href,label],i) => (
-            <a key={href} href={href} onClick={() => setMenuOpen(false)} style={{
-              fontFamily:"'Cormorant Garamond',serif",fontSize:48,fontWeight:300,
-              color:"#fff",textDecoration:"none",opacity:0,
-              animation:`fadeUp .5s ease ${i*100}ms forwards`,
-            }}>{label}</a>
+          {["Bio","Spettacoli","Portfolio","Contatti"].map((l,i) => (
+            <a key={l} href={`#${l.toLowerCase()}`} onClick={() => setMenuOpen(false)} style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:48,fontWeight:300,color:"#fff",textDecoration:"none",opacity:0,animation:`fadeUp .5s ease ${i*80}ms forwards` }}>{l}</a>
           ))}
         </div>
       )}
 
-      {/* ══════════════════════════════════
-          HERO — GIF background + scroll reveal text
-      ══════════════════════════════════ */}
-      <section
-        ref={heroRef}
-        style={{ position:"relative",height:"100vh",overflow:"hidden" }}
-      >
-        {/* GIF background with parallax */}
-        <div style={{
-          position:"absolute",inset:"-10% 0",
-          transform: `translateY(${heroProgress * 30}%)`,
-          transition:"transform 0s",
-          willChange:"transform",
-        }}>
-          <img
-            src={GIF_HERO}
-            alt=""
-            loading="eager"
-            style={{ width:"100%",height:"100%",objectFit:"cover",display:"block" }}
-          />
-        </div>
+      {/* ══════════════════════════════
+          HERO — dark, cinematic
+      ══════════════════════════════ */}
+      <section style={{ position:"relative",height:"100vh",overflow:"hidden",background:"#0a0a0a" }}>
+        {/* Spotlight from top */}
+        <div style={{ position:"absolute",top:0,left:"50%",transform:"translateX(-50%)",width:0,height:0,borderLeft:"300px solid transparent",borderRight:"300px solid transparent",borderTop:"100vh solid rgba(212,175,55,.05)",pointerEvents:"none",animation:"spotPulse 4s ease-in-out infinite",filter:"blur(24px)" }} />
 
-        {/* Dark overlay — lightens as you scroll */}
-        <div style={{
-          position:"absolute",inset:0,
-          background: `linear-gradient(to bottom,
-            rgba(0,0,0,${0.55 - heroProgress * 0.1}) 0%,
-            rgba(0,0,0,${0.18 - heroProgress * 0.05}) 40%,
-            rgba(0,0,0,${0.75 - heroProgress * 0.1}) 100%)`,
-        }} />
+        {/* Vertical gold lines */}
+        {[25, 50, 75].map(pct => (
+          <div key={pct} style={{ position:"absolute",top:0,bottom:0,left:`${pct}%`,width:1,background:`linear-gradient(to bottom, transparent, rgba(212,175,55,.06) 30%, rgba(212,175,55,.06) 70%, transparent)`,pointerEvents:"none" }} />
+        ))}
 
         {/* Hero content */}
-        <div style={{
-          position:"relative",zIndex:2,height:"100%",
-          display:"flex",flexDirection:"column",
-          alignItems:"center",justifyContent:"center",
-          textAlign:"center",padding:"80px 24px 0",
-        }}>
-          {/* Label */}
-          <div
-            className="mono"
-            style={{
-              fontSize:10,color:"rgba(255,255,255,.42)",marginBottom:32,
-              opacity: showLine1 ? 1 : 0,
-              transform: showLine1 ? "none" : "translateY(16px)",
-              transition:"opacity .7s ease 0ms, transform .7s ease 0ms",
-            }}
-          >
-            — Software CRM per il Business Moderno
+        <div style={{ position:"relative",zIndex:2,height:"100%",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",textAlign:"center",padding:"80px 24px 0" }}>
+          <div className="mono" style={{ fontSize:9,color:"rgba(212,175,55,.6)",marginBottom:32,letterSpacing:".3em",opacity:showL1?1:0,transform:showL1?"none":"translateY(12px)",transition:"all .7s ease" }}>
+            — Attore · Performer · Artista
           </div>
 
-          {/* Title with scroll-reveal lines */}
-          <h1 style={{
-            fontFamily:"'Cormorant Garamond',serif",
-            fontSize:"clamp(56px,11vw,124px)",
-            fontWeight:300,lineHeight:.95,
-            color:"#fff",letterSpacing:"-.02em",
-            marginBottom:36,
-          }}>
-            <HeroLine show={showLine1} delay={0}>Il tuo</HeroLine>
-            <HeroLine show={showLine2} delay={80} italic>business</HeroLine>
-            <HeroLine show={showLine3} delay={160}>al centro.</HeroLine>
+          <h1 style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:"clamp(56px,12vw,130px)",fontWeight:300,lineHeight:.9,color:"#fff",letterSpacing:"-.01em",marginBottom:40 }}>
+            {/* Line 1 */}
+            <div style={{ overflow:"hidden",paddingBottom:".08em" }}>
+              <div style={{ opacity:showL1?1:0,transform:showL1?"translateY(0)":"translateY(100%)",transition:"all .85s cubic-bezier(.22,1,.36,1) 0ms" }}>
+                Ogni
+              </div>
+            </div>
+            {/* Line 2 */}
+            <div style={{ overflow:"hidden",paddingBottom:".08em" }}>
+              <div style={{ fontStyle:"italic",color:"#d4af37",opacity:showL2?1:0,transform:showL2?"translateY(0)":"translateY(100%)",transition:"all .85s cubic-bezier(.22,1,.36,1) 50ms" }}>
+                scena
+              </div>
+            </div>
+            {/* Line 3 */}
+            <div style={{ overflow:"hidden",paddingBottom:".08em" }}>
+              <div style={{ opacity:showL3?1:0,transform:showL3?"translateY(0)":"translateY(100%)",transition:"all .85s cubic-bezier(.22,1,.36,1) 100ms" }}>
+                racconta.
+              </div>
+            </div>
           </h1>
 
-          {/* Subtitle */}
-          <p style={{
-            fontFamily:"'Cormorant Garamond',serif",
-            fontSize:19,fontWeight:300,
-            color:"rgba(255,255,255,.7)",
-            lineHeight:1.7,maxWidth:420,marginBottom:52,
-            opacity: showSub ? 1 : 0,
-            transform: showSub ? "none" : "translateY(20px)",
-            transition:"opacity .9s cubic-bezier(.22,1,.36,1) 0ms, transform .9s cubic-bezier(.22,1,.36,1) 0ms",
-          }}>
-            Gestisci clienti, pipeline e automazioni da un'unica piattaforma elegante.
+          <p style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:300,color:"rgba(255,255,255,.55)",lineHeight:1.75,maxWidth:400,marginBottom:52,opacity:showSub?1:0,transform:showSub?"none":"translateY(16px)",transition:"all .9s cubic-bezier(.22,1,.36,1)" }}>
+            Vent'anni di palcoscenico, cinema e televisione. Un percorso unico tra emozione e tecnica.
           </p>
 
-          {/* Buttons */}
-          <div
-            className="hero-btns"
-            style={{
-              display:"flex",gap:16,
-              opacity: showBtns ? 1 : 0,
-              transform: showBtns ? "none" : "translateY(20px)",
-              transition:"opacity .9s cubic-bezier(.22,1,.36,1) 0ms, transform .9s cubic-bezier(.22,1,.36,1) 0ms",
-            }}
-          >
-            <a href="/crm" className="btn-w">Inizia Gratis</a>
-            <a href="#features" className="btn-ghost">Scopri di più</a>
+          <div className="hero-btns" style={{ display:"flex",gap:16,opacity:showBtns?1:0,transform:showBtns?"none":"translateY(16px)",transition:"all .9s cubic-bezier(.22,1,.36,1)" }}>
+            <a href="#spettacoli" className="btn-gold">Scopri il portfolio</a>
+            <a href="#contatti"   className="btn-ghost-w">Contattami</a>
           </div>
         </div>
 
         {/* Scroll indicator */}
-        <div style={{
-          position:"absolute",bottom:36,left:"50%",transform:"translateX(-50%)",
-          zIndex:2,
-          opacity: showBtns ? 1 : 0,
-          transition:"opacity .9s ease 400ms",
-        }}>
-          <svg viewBox="0 0 68 68" style={{ width:56,height:56,animation:"rotateSlow 9s linear infinite" }}>
+        <div style={{ position:"absolute",bottom:32,left:"50%",transform:"translateX(-50%)",zIndex:2,opacity:showBtns?0.6:0,transition:"opacity .9s ease 300ms" }}>
+          <svg viewBox="0 0 68 68" style={{ width:52,height:52,animation:"rotateSlow 10s linear infinite" }}>
             <defs><path id="cr" d="M 34,34 m -24,0 a 24,24 0 1,1 48,0 a 24,24 0 1,1 -48,0" /></defs>
-            <text style={{ fontSize:7.8,fill:"rgba(255,255,255,.5)",fontFamily:"'Instrument Mono',monospace",letterSpacing:"2.4px" }}>
+            <text style={{ fontSize:7.5,fill:"rgba(212,175,55,.5)",fontFamily:"'Instrument Mono',monospace",letterSpacing:"2.2px" }}>
               <textPath href="#cr">SCROLL · SCROLL · SCROLL ·</textPath>
             </text>
           </svg>
           <div style={{ position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",display:"flex",flexDirection:"column",alignItems:"center",gap:2 }}>
-            <div style={{ width:1,height:12,background:"rgba(255,255,255,.5)" }} />
-            <div style={{ borderLeft:"4px solid transparent",borderRight:"4px solid transparent",borderTop:"5px solid rgba(255,255,255,.5)" }} />
+            <div style={{ width:1,height:12,background:"rgba(212,175,55,.5)" }} />
+            <div style={{ borderLeft:"4px solid transparent",borderRight:"4px solid transparent",borderTop:"5px solid rgba(212,175,55,.5)" }} />
           </div>
         </div>
       </section>
 
-      {/* ── ZONE START — floating GIFs begin here ── */}
-      <div ref={zoneStartRef} style={{ height:0 }} />
+      {/* ══════════════════════════════
+          MIC SCENE — 400vh scroll driven
+      ══════════════════════════════ */}
+      <section
+        ref={micSceneRef}
+        style={{ position:"relative", height:"400vh", background:"#000" }}
+      >
+        <div style={{ position:"sticky",top:0,height:"100vh",overflow:"hidden",background:"radial-gradient(ellipse 70% 60% at 50% 0%, #120800 0%, #000 70%)" }}>
 
-      {/* ══════════════════════════════════
+          {/* Spotlight cone */}
+          <div style={{ position:"absolute",top:0,left:"50%",transform:"translateX(-50%)",width:0,height:0,borderLeft:"250px solid transparent",borderRight:"250px solid transparent",borderTop:"90vh solid rgba(212,175,55,.06)",pointerEvents:"none",animation:"spotPulse 3.5s ease-in-out infinite",filter:"blur(20px)" }} />
+          <div style={{ position:"absolute",top:0,left:"50%",transform:"translateX(-50%)",width:0,height:0,borderLeft:"100px solid transparent",borderRight:"100px solid transparent",borderTop:"75vh solid rgba(255,220,100,.05)",pointerEvents:"none",filter:"blur(6px)" }} />
+
+          {/* Gold dust particles */}
+          {[...Array(10)].map((_, i) => (
+            <div key={i} style={{
+              position:"absolute",
+              top:`${8 + (i % 4) * 8}%`,
+              left:`${28 + i * 5}%`,
+              width: i % 3 === 0 ? 3 : 2,
+              height: i % 3 === 0 ? 3 : 2,
+              borderRadius:"50%",
+              background:"#d4af37",
+              animation:`particleDrift ${2.5 + (i % 3) * .8}s ease-in ${i * 0.28}s infinite`,
+              opacity:0,
+            }} />
+          ))}
+
+          {/* Floor line */}
+          <div style={{ position:"absolute",bottom:"18%",left:"8%",right:"8%",height:1,background:"linear-gradient(90deg,transparent,rgba(212,175,55,.12),transparent)" }} />
+
+          {/* GLOW BURST */}
+          <div ref={glowRef} style={{
+            position:"absolute",top:"48%",left:"50%",
+            width:340,height:340,
+            borderRadius:"50%",
+            background:"radial-gradient(circle,rgba(212,175,55,.3) 0%,rgba(212,175,55,.08) 45%,transparent 70%)",
+            transform:"translate(-50%,-50%) scale(0.3)",
+            opacity:0,pointerEvents:"none",filter:"blur(10px)",
+          }} />
+
+          {/* MICROPHONE */}
+          {micVisible && (
+            <div ref={micRef} style={{
+              position:"absolute",
+              top:"44%",left:"50%",
+              transform:"translateX(-50%) translateY(-50%)",
+              opacity:0,
+              willChange:"transform,opacity",
+              zIndex:10,
+              animation:"goldShimmer 2.8s ease-in-out infinite",
+            }}>
+              <img
+                src={MIC_ONLY}
+                alt="Microfono"
+                className="mic-size"
+                style={{ width:"clamp(110px,16vw,190px)",height:"auto",display:"block",filter:"drop-shadow(0 8px 40px rgba(0,0,0,.9))" }}
+              />
+            </div>
+          )}
+
+          {/* HAND */}
+          <div ref={handRef} style={{
+            position:"absolute",
+            top:"56%",left:"50%",
+            transform:"translateX(-50%) translateY(-50%)",
+            opacity:0,
+            willChange:"transform,opacity",
+            zIndex: handFrame === 2 ? 12 : 8,
+          }}>
+            <img
+              src={handFrame === 0 ? HAND_OPEN : handFrame === 1 ? HAND_MID : HAND_GRIP}
+              alt="Mano"
+              className="hand-size"
+              style={{ width:"clamp(150px,22vw,240px)",height:"auto",display:"block",filter:"drop-shadow(0 16px 48px rgba(0,0,0,.95))",transition:"opacity .1s ease" }}
+            />
+          </div>
+
+          {/* CTA overlay */}
+          <div ref={ctaRef} style={{
+            position:"absolute",bottom:"12%",left:"50%",
+            transform:"translateX(-50%) translateY(40px)",
+            textAlign:"center",opacity:0,
+            willChange:"transform,opacity",pointerEvents:ctaVisible?"auto":"none",
+            whiteSpace:"nowrap",
+          }}>
+            <div style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:"clamp(26px,4.5vw,52px)",fontWeight:300,color:"#fff",letterSpacing:".06em",lineHeight:1.1,marginBottom:14 }}>
+              <em>Il palco è pronto.</em>
+            </div>
+            <div className="mono" style={{ fontSize:9,color:"rgba(212,175,55,.7)",marginBottom:28,letterSpacing:".24em" }}>
+              — Scopri il percorso —
+            </div>
+            <a href="#spettacoli" className="btn-gold">Entra in scena</a>
+          </div>
+
+          {/* Scroll hint at top */}
+          <div style={{ position:"absolute",bottom:28,left:"50%",transform:"translateX(-50%)",opacity:.3,pointerEvents:"none" }}>
+            <div className="mono" style={{ fontSize:8,color:"rgba(255,255,255,.4)",textAlign:"center",letterSpacing:".18em" }}>Scorri</div>
+            <div style={{ width:1,height:28,background:"linear-gradient(to bottom,rgba(212,175,55,.5),transparent)",margin:"6px auto 0" }} />
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════
           MARQUEE
-      ══════════════════════════════════ */}
-      <div style={{ overflow:"hidden",background:"#0a0a0a",padding:"26px 0" }}>
-        <div style={{ display:"flex",whiteSpace:"nowrap",animation:"marquee 22s linear infinite" }}>
+      ══════════════════════════════ */}
+      <div style={{ overflow:"hidden",background:"#0a0a0a",padding:"24px 0",borderTop:"1px solid #1a1a1a" }}>
+        <div style={{ display:"flex",whiteSpace:"nowrap",animation:"marquee 24s linear infinite" }}>
           {[...Array(4)].flatMap(() =>
-            STATS_MARQUEE.map((s, i) => (
-              <span key={`${s}-${i}`} style={{ display:"inline-flex",alignItems:"center",gap:28,padding:"0 40px" }}>
-                <span style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:300,color:"#fff" }}>{s}</span>
-                <span style={{ color:"rgba(255,255,255,.15)",fontSize:14 }}>✦</span>
+            ["Cinema","Teatro","Televisione","Doppiaggio","Regia","Palcoscenico"].map((s,i) => (
+              <span key={`${s}-${i}`} style={{ display:"inline-flex",alignItems:"center",gap:24,padding:"0 32px" }}>
+                <span style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:300,color:"rgba(255,255,255,.5)",fontStyle:"italic" }}>{s}</span>
+                <span style={{ color:"rgba(212,175,55,.3)",fontSize:10 }}>✦</span>
               </span>
             ))
           )}
         </div>
       </div>
 
-      {/* ══════════════════════════════════
-          FEATURES
-      ══════════════════════════════════ */}
-      <section id="features" style={{ padding:"120px 32px",maxWidth:1200,margin:"0 auto" }}>
-        <Reveal from="left">
-          <span className="mono" style={{ fontSize:10,opacity:.3,display:"block",marginBottom:20 }}>— Funzionalità</span>
-        </Reveal>
-        <Reveal delay={80}>
-          <h2 style={{
-            fontFamily:"'Cormorant Garamond',serif",
-            fontSize:"clamp(38px,6vw,80px)",
-            fontWeight:300,lineHeight:1,marginBottom:72,
-          }}>
-            Tutto ciò che<br /><em>serve davvero.</em>
-          </h2>
-        </Reveal>
-        <div className="features-g" style={{ display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:2 }}>
-          {FEATURES.map((f, i) => (
-            <Reveal key={f.num} from={f.from} delay={i * 80}>
-              <div className="fcard">
-                <div className="bnum">{f.num}</div>
-                <div style={{ display:"flex",justifyContent:"space-between",marginBottom:28 }}>
-                  <span className="mono" style={{ fontSize:10,opacity:.3 }}>{f.num}</span>
-                </div>
-                <h3 style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:26,fontWeight:400,marginBottom:14,lineHeight:1.2 }}>{f.title}</h3>
-                <p style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:17,fontWeight:300,lineHeight:1.8,opacity:.58 }}>{f.desc}</p>
+      {/* ══════════════════════════════
+          BIO
+      ══════════════════════════════ */}
+      <section id="bio" style={{ padding:"120px 32px",maxWidth:1100,margin:"0 auto" }}>
+        <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:80,alignItems:"center" }}>
+          <Reveal from="left">
+            <div>
+              <div className="mono" style={{ fontSize:9,opacity:.3,marginBottom:20 }}>— Chi sono</div>
+              <h2 style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:"clamp(36px,5vw,66px)",fontWeight:300,lineHeight:1,marginBottom:32 }}>
+                Una carriera<br /><em style={{ color:"#d4af37" }}>costruita</em><br />sul palco.
+              </h2>
+              <p style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:300,lineHeight:1.85,opacity:.6,marginBottom:28 }}>
+                Formatosi presso il Teatro Stabile, ha calcato i palchi di tutta Italia con ruoli protagonisti in opere classiche e contemporanee. La sua tecnica unisce tradizione e sperimentazione.
+              </p>
+              <p style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:300,lineHeight:1.85,opacity:.6,marginBottom:40 }}>
+                Al cinema ha collaborato con i più importanti registi italiani, portando in scena personaggi complessi con una presenza magnetica.
+              </p>
+              <a href="#contatti" className="btn-gold" style={{ fontSize:10 }}>Collabora con me</a>
+            </div>
+          </Reveal>
+          <Reveal from="right" delay={120}>
+            {/* Photo placeholder */}
+            <div style={{ aspectRatio:"3/4",background:"#111",position:"relative",overflow:"hidden" }}>
+              <div style={{ position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center" }}>
+                <div className="mono" style={{ fontSize:9,opacity:.2 }}>Foto attore</div>
               </div>
-            </Reveal>
-          ))}
+              <div style={{ position:"absolute",bottom:0,left:0,right:0,height:"40%",background:"linear-gradient(to top,rgba(0,0,0,.4),transparent)" }} />
+              <div style={{ position:"absolute",top:16,right:16,width:40,height:40,border:"1px solid rgba(212,175,55,.3)" }} />
+              <div style={{ position:"absolute",bottom:16,left:16,width:40,height:40,border:"1px solid rgba(212,175,55,.3)" }} />
+            </div>
+          </Reveal>
         </div>
       </section>
 
-      {/* ══════════════════════════════════
-          STATS
-      ══════════════════════════════════ */}
-      <section style={{ background:"#f6f6f6",padding:"100px 32px" }}>
-        <div style={{ maxWidth:1200,margin:"0 auto" }}>
+      {/* ══════════════════════════════
+          SPETTACOLI
+      ══════════════════════════════ */}
+      <section id="spettacoli" style={{ background:"#f8f8f6",padding:"100px 32px" }}>
+        <div style={{ maxWidth:1100,margin:"0 auto" }}>
           <Reveal from="left">
-            <span className="mono" style={{ fontSize:10,opacity:.3,display:"block",marginBottom:56 }}>— Numeri che parlano</span>
+            <div className="mono" style={{ fontSize:9,opacity:.3,marginBottom:20 }}>— Spettacoli recenti</div>
           </Reveal>
-          <div className="stats-g" style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:32 }}>
+          <Reveal delay={60}>
+            <h2 style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:"clamp(36px,5vw,72px)",fontWeight:300,lineHeight:1,marginBottom:64 }}>
+              Opere &<br /><em>produzioni.</em>
+            </h2>
+          </Reveal>
+          <div className="features-g" style={{ display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:2 }}>
             {[
-              { val:"3×",    label:"Più conversioni" },
-              { val:"80%",   label:"Tempo risparmiato" },
-              { val:"10k+",  label:"Aziende attive" },
-              { val:"99.9%", label:"Uptime garantito" },
-            ].map((s, i) => (
-              <Reveal key={s.val} from={i % 2 === 0 ? "left" : "right"} delay={i * 80}>
-                <div style={{ borderTop:"1px solid #d8d8d8",paddingTop:28 }}>
-                  <div style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:"clamp(48px,5vw,72px)",fontWeight:300,lineHeight:1,marginBottom:10 }}>{s.val}</div>
-                  <div className="mono" style={{ fontSize:9,opacity:.38 }}>{s.label}</div>
+              { num:"01", title:"Amleto",       sub:"Teatro Stabile · 2024",   role:"Protagonista" },
+              { num:"02", title:"La Locandiera", sub:"Tournée nazionale · 2023", role:"Mirandolino" },
+              { num:"03", title:"L'Avaro",       sub:"Festival estivo · 2023",  role:"Arpagone" },
+              { num:"04", title:"Otello",        sub:"Arena · 2022",            role:"Iago" },
+            ].map((s,i) => (
+              <Reveal key={s.num} from={i%2===0?"left":"right"} delay={i*60}>
+                <div className="fcard">
+                  <div className="bnum">{s.num}</div>
+                  <div className="mono" style={{ fontSize:8,opacity:.3,marginBottom:20 }}>{s.num}</div>
+                  <h3 style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:28,fontWeight:400,marginBottom:8 }}>{s.title}</h3>
+                  <div style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:16,fontStyle:"italic",color:"#d4af37",marginBottom:8 }}>{s.role}</div>
+                  <div className="mono" style={{ fontSize:8,opacity:.3 }}>{s.sub}</div>
                 </div>
               </Reveal>
             ))}
@@ -631,86 +549,60 @@ export default function Index() {
         </div>
       </section>
 
-      {/* ══════════════════════════════════
-          TESTIMONIAL
-      ══════════════════════════════════ */}
-      <section style={{ padding:"120px 32px",maxWidth:860,margin:"0 auto",textAlign:"center" }}>
-        <Reveal>
-          <div style={{ fontSize:64,opacity:.07,lineHeight:1,marginBottom:16,fontFamily:"Georgia,serif" }}>"</div>
-          <blockquote style={{
-            fontFamily:"'Cormorant Garamond',serif",
-            fontSize:"clamp(20px,3vw,34px)",
-            fontWeight:300,lineHeight:1.55,fontStyle:"italic",marginBottom:40,
-          }}>
-            Artemisia ha trasformato il nostro processo di vendita. In tre mesi abbiamo triplicato le conversioni e ridotto il tempo di gestione dell'80%.
-          </blockquote>
-          <div style={{ display:"flex",alignItems:"center",justifyContent:"center",gap:14 }}>
-            <div style={{ width:38,height:38,borderRadius:"50%",background:"#e0e0e0" }} />
-            <div style={{ textAlign:"left" }}>
-              <div className="mono" style={{ fontSize:10,opacity:.65 }}>Marco Ferretti</div>
-              <div className="mono" style={{ fontSize:9,opacity:.32 }}>CEO, Nexlabs Milano</div>
-            </div>
+      {/* ══════════════════════════════
+          STATS
+      ══════════════════════════════ */}
+      <section style={{ background:"#0a0a0a",padding:"100px 32px" }}>
+        <div style={{ maxWidth:1100,margin:"0 auto" }}>
+          <div className="stats-g" style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:32 }}>
+            {[
+              { val:"20+", label:"Anni di carriera" },
+              { val:"80+", label:"Produzioni" },
+              { val:"15",  label:"Premi vinti" },
+              { val:"3",   label:"Lingue parlate" },
+            ].map((s,i) => (
+              <Reveal key={s.val} from={i%2===0?"left":"right"} delay={i*60}>
+                <div style={{ borderTop:"1px solid #2a2a2a",paddingTop:28 }}>
+                  <div style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:"clamp(44px,5vw,68px)",fontWeight:300,lineHeight:1,marginBottom:10,color:"#d4af37" }}>{s.val}</div>
+                  <div className="mono" style={{ fontSize:8,color:"rgba(255,255,255,.3)" }}>{s.label}</div>
+                </div>
+              </Reveal>
+            ))}
           </div>
-        </Reveal>
+        </div>
       </section>
 
-      {/* ── ZONE END — floating GIFs exit here ── */}
-      <div ref={zoneEndRef} style={{ height:0 }} />
-
-      {/* ══════════════════════════════════
-          CTA
-      ══════════════════════════════════ */}
-      <section id="crm" style={{ background:"#0a0a0a",padding:"160px 32px",position:"relative",overflow:"hidden" }}>
-        {[480,760,1040].map((size, i) => (
-          <div key={i} style={{
-            position:"absolute",width:size,height:size,
-            borderRadius:"50%",border:"1px solid rgba(255,255,255,.04)",
-            top:"50%",left:"50%",transform:"translate(-50%,-50%)",
-            pointerEvents:"none",
-          }} />
+      {/* ══════════════════════════════
+          CONTATTI CTA
+      ══════════════════════════════ */}
+      <section id="contatti" style={{ background:"#0a0a0a",padding:"160px 32px",position:"relative",overflow:"hidden",borderTop:"1px solid #111" }}>
+        {[400,700,980].map((s,i) => (
+          <div key={i} style={{ position:"absolute",width:s,height:s,borderRadius:"50%",border:"1px solid rgba(212,175,55,.04)",top:"50%",left:"50%",transform:"translate(-50%,-50%)",pointerEvents:"none" }} />
         ))}
-        <div style={{ maxWidth:700,margin:"0 auto",textAlign:"center",position:"relative" }}>
+        <div style={{ maxWidth:660,margin:"0 auto",textAlign:"center",position:"relative" }}>
           <Reveal from="left">
-            <span className="mono" style={{ fontSize:10,color:"rgba(255,255,255,.25)",display:"block",marginBottom:28 }}>
-              — Pronto a iniziare?
-            </span>
+            <div className="mono" style={{ fontSize:9,color:"rgba(212,175,55,.5)",marginBottom:24,letterSpacing:".24em" }}>— Contatti</div>
           </Reveal>
           <Reveal delay={80}>
-            <h2 style={{
-              fontFamily:"'Cormorant Garamond',serif",
-              fontSize:"clamp(52px,9vw,104px)",
-              fontWeight:300,lineHeight:.92,
-              color:"#fff",letterSpacing:"-.02em",marginBottom:32,
-            }}>
-              Entra nel<br /><em>tuo CRM.</em>
+            <h2 style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:"clamp(48px,8vw,96px)",fontWeight:300,lineHeight:.92,color:"#fff",letterSpacing:"-.01em",marginBottom:28 }}>
+              Scrivimi.<br /><em style={{ color:"#d4af37" }}>Creiamo.</em>
             </h2>
           </Reveal>
           <Reveal from="right" delay={140}>
-            <p style={{
-              fontFamily:"'Cormorant Garamond',serif",
-              fontSize:20,fontWeight:300,
-              color:"rgba(255,255,255,.4)",
-              lineHeight:1.75,marginBottom:56,
-            }}>
-              Accedi alla dashboard, gestisci i tuoi clienti e fai crescere il tuo business da oggi.
+            <p style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:19,fontWeight:300,color:"rgba(255,255,255,.38)",lineHeight:1.75,marginBottom:52 }}>
+              Per produzioni, collaborazioni, interviste o qualsiasi progetto che richieda una presenza scenica autentica.
             </p>
-            <a href="/crm" className="btn-crm">Apri il CRM →</a>
+            <a href="mailto:contatti@attore.it" className="btn-gold" style={{ fontSize:11 }}>
+              Invia un messaggio →
+            </a>
           </Reveal>
         </div>
       </section>
 
       {/* FOOTER */}
-      <footer style={{
-        padding:"36px 32px",background:"#0a0a0a",
-        display:"flex",justifyContent:"space-between",alignItems:"center",
-        borderTop:"1px solid #1a1a1a",flexWrap:"wrap",gap:16,
-      }}>
-        <div style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:17,fontWeight:600,letterSpacing:".2em",color:"#fff" }}>
-          ARTEMISIA
-        </div>
-        <div className="mono" style={{ fontSize:9,color:"rgba(255,255,255,.25)" }}>
-          © 2025 — Tutti i diritti riservati
-        </div>
+      <footer style={{ padding:"32px",background:"#000",display:"flex",justifyContent:"space-between",alignItems:"center",borderTop:"1px solid #1a1a1a",flexWrap:"wrap",gap:12 }}>
+        <div style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:16,fontWeight:600,letterSpacing:".25em",color:"#fff" }}>NOME ATTORE</div>
+        <div className="mono" style={{ fontSize:8,color:"rgba(255,255,255,.2)" }}>© 2025 — Tutti i diritti riservati</div>
       </footer>
     </div>
   );
