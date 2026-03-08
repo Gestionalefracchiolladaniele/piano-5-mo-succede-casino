@@ -692,7 +692,7 @@ export default function Index() {
               color:"rgba(255,255,255,.4)",
               lineHeight:1.75,marginBottom:56,
             }}>
-              Accedi alla dashboard, gestisci i tuoi clienti e fai crescere il tuo business da oggi.
+              Accedi alla dashboard, gestisci i tuoi clienti e fai crescere il tuo business da oggie per sempre.
             </p>
             <a href="/crm" className="btn-crm">Apri il CRM →</a>
           </Reveal>
