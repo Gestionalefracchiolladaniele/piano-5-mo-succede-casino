@@ -255,7 +255,7 @@ export default function Index() {
   }, [onScroll]);
 
   return (
-    <div style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", background: "#fff", color: "#0a0a0a", overflowX: "hidden" }}>
+    <div style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", background: "#FFFFFF", color: "#0F2440", overflowX: "hidden" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Instrument+Mono:wght@300;400&display=swap');
         *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
